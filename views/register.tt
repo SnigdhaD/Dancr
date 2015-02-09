@@ -1,0 +1,13 @@
+<form action="[% register_url %]" method=post class=register
+  <dl>
+    <dt>Name:
+    <dd><input type=text size=30 name=name>
+    <dt>Username:
+    <dd><input type=text size=30 name=user>
+    <dt>Password:
+    <dd><input type=password size=20 name=pwd>
+    <dt>Email id:
+    <dd><input type=text size=30 name=email>
+    <dd><input type=submit value=registered>
+  </dl>
+</form>

@@ -1,0 +1,12 @@
+[% IF session.logged_in %]
+	<form action="[% update_entry_url %]" method=post >
+		<dl>
+			<dt>Title:
+			<dd><input type=text size=30 name=title value="[% title_value %]">
+			<dt>Text:
+			<dd><textarea name=text rows=5 cols=40> [% text_value %] </textarea>
+			<dd><input type=submit value=share>
+<input type=hidden value="[% rowid %]" name=rowid>
+		</dl>
+	</form>
+[% END %]
