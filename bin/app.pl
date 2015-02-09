@@ -35,19 +35,16 @@ sub get_flash {
 }
  
 sub connect_db {
-#	print "connected";
        my $dbh = DBI->connect("dbi:SQLite:dbname=".setting('database')) or
                die $DBI::errstr;
        return $dbh;
 }
  
 sub init_db {
-#	print "initializing\n";
        my $db = connect_db();
        my $schema = read_file('./schema.sql');
        $db->do($schema) or die $db->errstr;
-       # print "Created table";
-}
+       }
  
 hook before_template => sub {
        my $tokens = shift;
@@ -94,9 +91,8 @@ post '/edit' => sub {
        }
  
        my $db = connect_db();
-# my $sql = 'update entries set title=\'edited\' where id='.params->{'rowid'};
-my $sql = "SELECT title, text FROM entries WHERE id=?";
-my @row = $db->selectrow_array($sql,undef,params->{'rowid'});
+       my $sql = "SELECT title, text FROM entries WHERE id=?";
+       my @row = $db->selectrow_array($sql,undef,params->{'rowid'});
 
        set_flash('Entry updated!');
       
@@ -134,7 +130,6 @@ any ['get', 'post'] => '/login' => sub {
                # process form input
                my $db = connect_db();
                my $sql = 'select username,password from users where username=?';
-               # my $sth = $db->prepare($sql) or die $db->errstr;
                my @ans = $db->selectrow_array($sql, undef, params->{'username'});
                my ($user,$pwd) = @ans;
                if (params->{'username'} ne $user){
