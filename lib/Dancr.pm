@@ -7,7 +7,7 @@ use DBI;
 use File::Spec;
 use File::Slurp;
 use Template;
- 
+
 set 'database'     => File::Spec->catfile(File::Spec->tmpdir(), 'dancr.db');
 set 'session'      => 'Simple';
 set 'template'     => 'template_toolkit';
@@ -17,36 +17,36 @@ set 'show_errors'  => 1;
 set 'startup_info' => 1;
 set 'warnings'     => 1;
 set 'layout'       => 'main';
- 
+
 my $flash;
- 
+
 sub set_flash {
        my $message = shift;
- 
+
        $flash = $message;
 }
- 
+
 sub get_flash {
- 
+
        my $msg = $flash;
        $flash = "";
- 
+
        return $msg;
 }
- 
+
 sub connect_db {
        my $dbh = DBI->connect("dbi:SQLite:dbname=".setting('database')) or
                die $DBI::errstr;
        return $dbh;
 }
- 
+
 sub init_db {
        my $db = connect_db();
        my $schema = read_file('./schema.sql');
        $db->do($schema) or die $db->errstr;
        print "Created table";
 }
- 
+
 hook before_template => sub {
        my $tokens = shift;
        $tokens->{'css_url'} = request->base . 'css/style.css';
@@ -54,7 +54,7 @@ hook before_template => sub {
        $tokens->{'register_url'} = uri_for('/register');
        $tokens->{'logout_url'} = uri_for('/logout');
 };
- 
+
 get '/' => sub {
 	if ( not session('logged_in') ){
 		print "here\n";
@@ -71,17 +71,17 @@ get '/' => sub {
                'entries' => $sth->fetchall_hashref('id'),
        };
 };
- 
+
 post '/add' => sub {
 	if ( not session('logged_in') ) {
                send_error("Not logged in", 401);
        }
- 
+
        my $db = connect_db();
        my $sql = 'insert into entries (title, text, username) values (?, ?, ?)';
        my $sth = $db->prepare($sql) or die $db->errstr;
        $sth->execute(params->{'title'}, params->{'text'}, session('username')) or die $sth->errstr;
- 
+
        set_flash('New entry posted!');
        redirect '/';
 };
@@ -90,13 +90,13 @@ post '/edit' => sub {
         if ( not session('logged_in') ) {
                send_error("Not logged in", 401);
        }
- 
+
        my $db = connect_db();
 my $sql = "SELECT title, text FROM entries WHERE id=?";
 my @row = $db->selectrow_array($sql,undef,params->{'rowid'});
 
        set_flash('Entry updated!');
-      
+
        template 'edit.tt', {
 	       'title_value' => $row[0],
 		       'text_value' => $row[1],
@@ -105,7 +105,7 @@ my @row = $db->selectrow_array($sql,undef,params->{'rowid'});
        };
 
 };
- 
+
 post '/update' => sub{
 	my $db = connect_db();
 	my $sql = 'update entries set title=?, text=? where id=?';
@@ -126,7 +126,7 @@ post '/delete' => sub{
 
 any ['get', 'post'] => '/login' => sub {
        my $err;
- 
+
        if ( request->method() eq "POST" ) {
                # process form input
                my $db = connect_db();
@@ -146,12 +146,12 @@ any ['get', 'post'] => '/login' => sub {
                        return redirect '/';
                }
        }
- 
+
        # display login form
        template 'login.tt', {
                'err' => $err,
        };
- 
+
 };
 
 any ['get', 'post'] => '/register' => sub {
@@ -160,12 +160,12 @@ any ['get', 'post'] => '/register' => sub {
        my $sql = 'insert into users (name, username, password, email) values (?, ?, ?, ?)';
        my $sth = $db->prepare($sql) or die $db->errstr;
        $sth->execute(params->{'name'}, params->{'user'}, params->{'pwd'}, params->{'email'}) or die $sth->errstr;
- 
+
        set_flash('New user registered');
        redirect '/login';
      }
   #display register form
-	
+
   template 'register.tt';
 };
 
