@@ -176,6 +176,6 @@ get '/logout' => sub {
 };
 
 init_db();
-
+start();
 true;
 
