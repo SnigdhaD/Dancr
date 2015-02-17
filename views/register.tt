@@ -8,6 +8,6 @@
     <dd><input type=password size=20 name=pwd>
     <dt>Email id:
     <dd><input type=text size=30 name=email>
-    <dd><input type=submit value=registered>
+    <dd><input type=submit value=register>
   </dl>
 </form>

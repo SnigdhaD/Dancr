@@ -1,10 +1,11 @@
 [% IF session.logged_in %]
-    <form action="[% add_entry_url %]" method=post class=add-entry>
+    <form action="[% add_entry_url %]" method=post class=add-entry enctype=multipart/form-data>
       <dl>
         <dt>Title:
         <dd><input type=text size=30 name=title>
         <dt>Text:
         <dd><textarea name=text rows=5 cols=40></textarea>
+        <dd><input type=file name=file>
         <dd><input type=submit value=Share>
       </dl>
     </form>
@@ -12,7 +13,9 @@
   <ul class=entries>
   [% IF entries.size %]
     [% FOREACH id IN entries.keys.nsort %]
-      <li><h2>[% entries.$id.title %]</h2>[% entries.$id.text %]
+      <li><h2>[% entries.$id.title %]</h2>
+      <img src=[% entries.$id.filename %] />
+      [% entries.$id.text %]
       <form action="[% edit_entry_url %]" method=post>
       <input type=hidden value="[% entries.$id.id %]" name=rowid>
 <input type=submit value=edit>
@@ -26,3 +29,4 @@
     <li><em>Unbelievable.  No entries here so far</em>
   [% END %]
   </ul>
+

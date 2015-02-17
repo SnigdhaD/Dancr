@@ -8,6 +8,8 @@ use File::Spec;
 use File::Slurp;
 use Template;
 
+set 'public_dir' => '/home/snigdha/Dancr/public';
+set 'upload_dir' => '/uploadsFolder/';
 set 'database'     => File::Spec->catfile(File::Spec->tmpdir(), 'dancr.db');
 set 'session'      => 'Simple';
 set 'template'     => 'template_toolkit';
@@ -38,10 +40,12 @@ sub connect_db {
 }
 
 sub init_db {
-    my $db = connect_db();
     my $schema = read_file('./schema.sql');
-    $db->do($schema) or die $db->errstr;
-    print "Created table";
+    my @sqls = split(/;/, $schema);
+    my $db = connect_db();
+    foreach $a (@sqls){
+        $db->do($a) or die $db->errstr;
+    }
 }
 
 hook before_template => sub {
@@ -58,7 +62,7 @@ get '/' => sub {
     }
 
     my $db = connect_db();
-    my $sql = 'select id, title, text from entries order by id desc';
+    my $sql = 'select id, title, text, filename from entries order by id desc';
     my $sth = $db->prepare($sql) or die $db->errstr;
 
     $sth->execute or die $sth->errstr;
@@ -77,9 +81,20 @@ post '/add' => sub {
     }
 
     my $db  = connect_db();
-    my $sql = 'insert into entries (title, text, username) values (?, ?, ?)';
+    my $upload = request->upload('file');
+    my $fname;
+
+    if($upload){
+        $fname = setting('upload_dir').$upload->filename;
+        $upload->copy_to(setting('public_dir').$fname);
+    }
+    else {
+        $fname="";
+    }
+
+    my $sql = 'insert into entries (title, text, username, filename) values (?, ?, ?, ?)';
     my $sth = $db->prepare($sql) or die $db->errstr;
-    $sth->execute(params->{'title'}, params->{'text'}, session('username')) or die $sth->errstr;
+    $sth->execute(params->{'title'}, params->{'text'}, session('username'), $fname) or die $sth->errstr;
 
     set_flash('New entry posted!');
     redirect '/';
@@ -115,6 +130,10 @@ post '/update' => sub{
 
 post '/delete' => sub{
     my $db  = connect_db();
+    my $sql = "select filename from entries where id=?";
+    my @row = $db->selectrow_array($sql,undef,params->{'rowid'});
+    my $fname = setting('public_dir').$row[0];
+    unlink $fname;
     my $sql = 'delete from entries where id=?';
     my $sth = $db->prepare($sql) or die $db->errstr;
     $sth->execute(params->{'rowid'}) or die $sth->errstr;
@@ -175,4 +194,5 @@ get '/logout' => sub {
 init_db();
 start();
 true;
+
 
