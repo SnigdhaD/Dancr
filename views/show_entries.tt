@@ -9,24 +9,29 @@
         <dd><input type=submit value=Share>
       </dl>
     </form>
-  [% END %]
+[% END %]
   <ul class=entries>
   [% IF entries.size %]
     [% FOREACH id IN entries.keys.nsort %]
       <li><h2>[% entries.$id.title %]</h2>
-      <img src=[% entries.$id.filename %] />
+      [% IF filenames.exists(entries.$id.id) %]
+      [% entry_id = entries.$id.id %]
+      <img src=[% filenames.item(entry_id).filename %] />
+      [% END %]
       [% entries.$id.text %]
-      <form action="[% edit_entry_url %]" method=post>
-      <input type=hidden value="[% entries.$id.id %]" name=rowid>
-<input type=submit value=edit>
-</form>
-<form action="[% delete_entry_url %]" method=post>
-<input type=hidden value="[% entries.$id.id %]" name=rowid>
-<input type=submit value=delete>
-</form>
+      [% IF entries.$id.username == uname %]
+          <form action="[% edit_entry_url %]" method=get>
+          <input type=hidden value="[% entries.$id.id %]" name=rowid>
+          <input type=submit value=edit>
+          </form>
+
+          <form action="[% delete_entry_url %]" method=post>
+          <input type=hidden value="[% entries.$id.id %]" name=rowid>
+          <input type=submit value=delete>
+          </form>
+      [% END %]
     [% END %]
   [% ELSE %]
     <li><em>Unbelievable.  No entries here so far</em>
   [% END %]
   </ul>
-
