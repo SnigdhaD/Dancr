@@ -7,6 +7,8 @@ use DBI;
 use File::Spec;
 use File::Slurp;
 use Template;
+use Dancer2::Plugin::Auth::Tiny;
+use Dancer2::Plugin::Passphrase;
 
 set 'public_dir' => '/home/snigdha/Dancr/public';
 set 'upload_dir' => '/uploadsFolder/';
@@ -56,59 +58,60 @@ hook before_template => sub {
     $tokens->{'logout_url'} = uri_for('/logout');
 };
 
-get '/' => sub {
+get '/' => needs login => sub {
     if ( not session('logged_in') ){
         print "here\n";
     }
 
     my $db = connect_db();
-    my $sql = 'select id, title, text, filename from entries order by id desc';
+    my $sql = 'select id, title, text, username from entries order by id desc';
     my $sth = $db->prepare($sql) or die $db->errstr;
-
     $sth->execute or die $sth->errstr;
+    $sql = 'select id,filename from filenames order by id desc';
+    my $filenames = $db->prepare($sql) or die $db->errstr;
+    $filenames->execute or die $sth->errstr;
+
     template 'show_entries.tt', {
         'msg'              => get_flash(),
         'add_entry_url'    => uri_for('/add'),
         'edit_entry_url'   => uri_for('/edit'),
         'delete_entry_url' => uri_for('/delete'),
         'entries'          => $sth->fetchall_hashref('id'),
+        'filenames'        => $filenames->fetchall_hashref('id'),
+        'uname'            => session('user')
     };
 };
 
-post '/add' => sub {
-    if ( not session('logged_in') ) {
-        send_error("Not logged in", 401);
-    }
+post '/add' => needs login => sub {
 
     my $db  = connect_db();
     my $upload = request->upload('file');
     my $fname;
 
+    my $sql = 'insert into entries (title, text, username) values (?, ?, ?)';
+    my $sth = $db->prepare($sql) or die $db->errstr;
+    $sth->execute(params->{'title'}, params->{'text'}, session('user')) or die $sth->errstr;
+
     if($upload){
         $fname = setting('upload_dir').$upload->filename;
         $upload->copy_to(setting('public_dir').$fname);
-    }
-    else {
-        $fname="";
-    }
 
-    my $sql = 'insert into entries (title, text, username, filename) values (?, ?, ?, ?)';
-    my $sth = $db->prepare($sql) or die $db->errstr;
-    $sth->execute(params->{'title'}, params->{'text'}, session('username'), $fname) or die $sth->errstr;
+        $sql = "select id from entries where username=? and title =? and text=?";
+        my @row = $db->selectrow_array($sql,undef,session('user'),params->{'title'},params->{'text'});
 
+        $sql = 'insert into filenames (id, filename) values (?, ?)';
+        $sth = $db->prepare($sql) or die $db->errstr;
+        $sth->execute($row[0], $fname) or die $sth->errstr;
+    }
     set_flash('New entry posted!');
     redirect '/';
 };
 
-post '/edit' => sub {
-    if ( not session('logged_in') ) {
-        send_error("Not logged in", 401);
-    }
-
+any ['get' ,'post'] => '/edit' => needs login =>  sub {
+    session('user'); #without this line tiny auth redirects to login page again and again
     my $db  = connect_db();
-    my $sql = "SELECT title, text FROM entries WHERE id=?";
+    my $sql = "SELECT title, text,username FROM entries WHERE id=?";
     my @row = $db->selectrow_array($sql,undef,params->{'rowid'});
-
     set_flash('Entry updated!');
 
     template 'edit.tt', {
@@ -119,7 +122,7 @@ post '/edit' => sub {
     };
 };
 
-post '/update' => sub{
+post '/update' => needs login => sub{
     my $db  = connect_db();
     my $sql = 'update entries set title=?, text=? where id=?';
     my $sth = $db->prepare($sql) or die $db->errstr;
@@ -128,14 +131,17 @@ post '/update' => sub{
     redirect '/';
 };
 
-post '/delete' => sub{
+post '/delete' => needs login => sub{
     my $db  = connect_db();
-    my $sql = "select filename from entries where id=?";
+    my $sql = "select filename from filenames where id=?";
     my @row = $db->selectrow_array($sql,undef,params->{'rowid'});
     my $fname = setting('public_dir').$row[0];
     unlink $fname;
     my $sql = 'delete from entries where id=?';
     my $sth = $db->prepare($sql) or die $db->errstr;
+    $sth->execute(params->{'rowid'}) or die $sth->errstr;
+    $sql = 'delete from filenames where id=?';
+    $sth = $db->prepare($sql) or die $db->errstr;
     $sth->execute(params->{'rowid'}) or die $sth->errstr;
     set_flash('Entry deleted!');
     redirect '/';
@@ -153,29 +159,32 @@ any ['get', 'post'] => '/login' => sub {
         if (params->{'username'} ne $user){
             $err = 'Invalid username';
         }
-        elsif(params->{'password'} ne $pwd) {
+        elsif(not passphrase(params->{'password'})->matches($pwd)) {
             $err = 'Invalid password';
         }
         else {
+            session 'user' => params->{'username'};
             session 'logged_in' => true;
-            session 'username' => params->{'username'};
             set_flash('You are logged in.');
-            return redirect '/';
+            print params->{return_url};
+            return redirect params->{return_url} || '/';
+            #return redirect '/';
         }
     }
-
     # display login form
     template 'login.tt', {
         'err' => $err,
+        'return_url' => params->{return_url}
     };
 };
 
 any ['get', 'post'] => '/register' => sub {
     if ( request->method() eq "POST" ) {
         my $db = connect_db();
+        my $password = passphrase( params->{'pwd'} )->generate;
         my $sql = 'insert into users (name, username, password, email) values (?, ?, ?, ?)';
         my $sth = $db->prepare($sql) or die $db->errstr;
-        $sth->execute(params->{'name'}, params->{'user'}, params->{'pwd'}, params->{'email'}) or die $sth->errstr;
+        $sth->execute(params->{'name'}, params->{'user'}, $password->rfc2307, params->{'email'}) or die $sth->errstr;
 
         set_flash('New user registered');
         redirect '/login';
@@ -185,7 +194,7 @@ any ['get', 'post'] => '/register' => sub {
     template 'register.tt';
 };
 
-get '/logout' => sub {
+get '/logout' => needs login => sub {
     app->destroy_session;
     set_flash('You are logged out.');
     redirect '/';
@@ -194,5 +203,4 @@ get '/logout' => sub {
 init_db();
 start();
 true;
-
 
