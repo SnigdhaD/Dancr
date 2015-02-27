@@ -6,7 +6,6 @@ use Dancer2;
 use DBI;
 use File::Spec;
 use File::Slurp;
-use Template;
 use Dancer2::Plugin::Auth::Tiny;
 use Dancer2::Plugin::Passphrase;
 
@@ -110,10 +109,13 @@ post '/add' => needs login => sub {
 any ['get' ,'post'] => '/edit' => needs login =>  sub {
     session('user'); #without this line tiny auth redirects to login page again and again
     my $db  = connect_db();
-    my $sql = "SELECT title, text,username FROM entries WHERE id=?";
+    my $sql = "SELECT title, text, username FROM entries WHERE id=?";
     my @row = $db->selectrow_array($sql,undef,params->{'rowid'});
-    set_flash('Entry updated!');
-
+    
+    if ( $row[2] ne session('user')) {
+        set_flash('Unauthorized access');
+        redirect '/';
+    }
     template 'edit.tt', {
         'title_value'      => $row[0],
         'text_value'       => $row[1],
@@ -133,11 +135,19 @@ post '/update' => needs login => sub{
 
 post '/delete' => needs login => sub{
     my $db  = connect_db();
-    my $sql = "select filename from filenames where id=?";
+    my $sql = "SELECT username FROM entries WHERE id=?";
     my @row = $db->selectrow_array($sql,undef,params->{'rowid'});
+    
+    if ( $row[0] ne session('user')) {
+        set_flash('Unauthorized access');
+        redirect '/';
+    }
+
+    $sql = "select filename from filenames where id=?";
+    @row = $db->selectrow_array($sql,undef,params->{'rowid'});
     my $fname = setting('public_dir').$row[0];
     unlink $fname;
-    my $sql = 'delete from entries where id=?';
+    $sql = 'delete from entries where id=?';
     my $sth = $db->prepare($sql) or die $db->errstr;
     $sth->execute(params->{'rowid'}) or die $sth->errstr;
     $sql = 'delete from filenames where id=?';
