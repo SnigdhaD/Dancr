@@ -10,10 +10,11 @@
        <div class=metanav>
        [% IF not session.logged_in %]
          <a href="[% login_url %]">log in</a>
-	       <a href="[% register_url %]">Register Now</a>
+       <a href="[% register_url %]">Register Now</a>
        [% ELSE %]
          <a href="[% logout_url %]">log out</a>
        [% END %]
+       <a href="[% feed_url %]" style="float:center" >Atom Feed</a>
     </div>
     [% IF msg %]
       <div class=flash> [% msg %] </div>
