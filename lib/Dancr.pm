@@ -6,7 +6,6 @@ use Dancer2;
 use DBI;
 use File::Spec;
 use File::Slurp;
-use Template;
 use Dancer2::Plugin::Auth::Tiny;
 use Dancer2::Plugin::Passphrase;
 use Dancer2::Plugin::Feed;
@@ -67,7 +66,7 @@ get '/' => needs login => sub {
     }
 
     my $db = connect_db();
-    my $sql = 'select id, title, text, author from entries order by id desc';
+    my $sql = 'select id, title, text, username from entries order by id desc';
     my $sth = $db->prepare($sql) or die $db->errstr;
     $sth->execute or die $sth->errstr;
     $sql = 'select id,filename from filenames order by id desc';
@@ -91,7 +90,7 @@ post '/add' => needs login => sub {
     my $upload = request->upload('file');
     my $fname;
 
-    my $sql = 'insert into entries (title, text, author, timestamp) values (?, ?, ?, ?)';
+    my $sql = 'insert into entries (title, text, username, timestamp) values (?, ?, ?, ?)';
     my $sth = $db->prepare($sql) or die $db->errstr;
     my $date = strftime('%Y-%m-%d %T',localtime);
     $sth->execute(params->{'title'}, params->{'text'}, session('user'), $date) or die $sth->errstr;
@@ -99,7 +98,7 @@ post '/add' => needs login => sub {
         $fname = setting('upload_dir').$upload->filename;
         $upload->copy_to(setting('public_dir').$fname);
 
-        $sql = "select id from entries where author =? and title =? and text=?";
+        $sql = "select id from entries where username =? and title =? and text=?";
         my @row = $db->selectrow_array($sql,undef,session('user'),params->{'title'},params->{'text'});
 
         $sql = 'insert into filenames (id, filename) values (?, ?)';
@@ -113,12 +112,11 @@ post '/add' => needs login => sub {
 any ['get' ,'post'] => '/edit' => needs login =>  sub {
     session('user'); #without this line tiny auth redirects to login page again and again
     my $db  = connect_db();
-    my $sql = "SELECT title, text, author FROM entries WHERE id=?";
+    my $sql = "SELECT title, text, username FROM entries WHERE id=?";
     my $sth = $db->prepare($sql) or die $db->errstr;
     $sth->execute(params->{'rowid'});
     my @row = $sth->fetchrow_array();
-    # my @row = $db->selectrow_array($sql,undef,params->{'rowid'});
-    
+
     if ( $row[2] ne session('user')) {
         set_flash('Unauthorized access');
         redirect '/';
@@ -146,7 +144,7 @@ post '/update' => needs login => sub{
 
 post '/delete' => needs login => sub{
     my $db  = connect_db();
-    my $sql = "SELECT author FROM entries WHERE id=?";
+    my $sql = "SELECT username FROM entries WHERE id=?";
     my @row = $db->selectrow_array($sql,undef,params->{'rowid'});
     
     if ( $row[0] ne session('user')) {
@@ -174,11 +172,11 @@ any ['get', 'post'] => '/login' => sub {
     if ( request->method() eq "POST" ) {
         # process form input
         my $db  = connect_db();
-        my $sql = 'select author,password from users where author=?';
+        my $sql = 'select username,password from users where author=?';
         my @ans = $db->selectrow_array($sql, undef, params->{'username'});
         my ($user,$pwd) = @ans;
         if (params->{'username'} ne $user){
-            $err = 'Invalid author';
+            $err = 'Invalid username';
         }
         elsif(not passphrase(params->{'password'})->matches($pwd)) {
             $err = 'Invalid password';
@@ -202,7 +200,7 @@ any ['get', 'post'] => '/register' => sub {
     if ( request->method() eq "POST" ) {
         my $db = connect_db();
         my $password = passphrase( params->{'pwd'} )->generate;
-        my $sql = 'insert into users (name, author, password, email) values (?, ?, ?, ?)';
+        my $sql = 'insert into users (name, username, password, email) values (?, ?, ?, ?)';
         my $sth = $db->prepare($sql) or die $db->errstr;
         $sth->execute(params->{'name'}, params->{'user'}, $password->rfc2307, params->{'email'}) or die $sth->errstr;
 
