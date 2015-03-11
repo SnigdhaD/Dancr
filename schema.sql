@@ -1,7 +1,7 @@
 create table if not exists users (
         userid integer primary key autoincrement,
         name string not null,
-        author string not null,
+        username string not null,
         password string not null,
         email string not null
         );
