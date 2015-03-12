@@ -1,37 +1,46 @@
+<!doctype html>
+  <html>
+  <head>
+    <link rel=stylesheet type=text/css href="[% css_url %]">
+  </head>
+  <body>
 [% IF session.logged_in %]
+<div class=add>
     <form action="[% add_entry_url %]" method=post class=add-entry enctype=multipart/form-data>
       <dl>
         <dt>Title:
         <dd><input type=text size=30 name=title>
         <dt>Text:
-        <dd><textarea name=text rows=5 cols=40></textarea>
+        <dd><textarea name=text rows=5 cols=43></textarea>
         <dd><input type=file name=file>
         <dd><input type=submit value=Share>
       </dl>
     </form>
+    </div>
 [% END %]
   <ul class=entries>
   [% IF entries.size %]
     [% FOREACH id IN entries.keys.nsort %]
-      <li><h2>[% entries.$id.title %]</h2>
-      [% IF filenames.exists(entries.$id.id) %]
+      <h2>[% entries.$id.title %]</h2>
       [% entry_id = entries.$id.id %]
       <img src=[% filenames.item(entry_id).filename %] />
-      [% END %]
-      [% entries.$id.text %]
+      <p>[% entries.$id.text %]</p>
       [% IF entries.$id.username == uname %]
+      <div class=option>
           <form action="[% edit_entry_url %]" method=get>
           <input type=hidden value="[% entries.$id.id %]" name=rowid>
-          <input type=submit value=edit>
+          <input type=submit value=Edit>
           </form>
-
           <form action="[% delete_entry_url %]" method=post>
           <input type=hidden value="[% entries.$id.id %]" name=rowid>
-          <input type=submit value=delete>
+          <input type=submit value=Delete>
           </form>
+          </div>
       [% END %]
     [% END %]
   [% ELSE %]
-    <li><em>Unbelievable.  No entries here so far</em>
+    <em>Unbelievable.  No entries here so far</em>
   [% END %]
   </ul>
+  </body>
+  </html>

@@ -1,13 +1,20 @@
-<form action="[% register_url %]" method=post class=register
+<!doctype html>
+  <html>
+  <head>
+    <link rel=stylesheet type=text/css href="[% css_url %]">
+  </head>
+  <body>
+  <div class=register>
+    <h2>Register Now</h2>
+<form action="[% register_url %]" method=post >
   <dl>
-    <dt>Name:
-    <dd><input type=text size=30 name=name>
-    <dt>Username:
-    <dd><input type=text size=30 name=user>
-    <dt>Password:
-    <dd><input type=password size=20 name=pwd>
-    <dt>Email id:
-    <dd><input type=text size=30 name=email>
-    <dd><input type=submit value=register>
+    <dd><input type=text size=30 name=name placeholder="Full Name"></dd>
+    <dd><input type=text size=30 name=user placeholder="Username"></dd>
+    <dd><input type=password size=30 name=pwd placeholder="Password"></dd>
+    <dd><input type=text size=30 name=email placeholder="Email"></dd>
+    <dd><input type=submit value=Register class="submit"></dd>
   </dl>
 </form>
+</div>
+</body>
+</html>

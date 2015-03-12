@@ -1,12 +1,22 @@
-<h2>Login</h2>
-  [% IF err %]<p class=error><strong>Error:</strong> [% err %][% END %]
-  <form action="[% login_url %]" method=post>
-    <dl>
-      <dt>Username:
-      <dd><input type=text name=username>
-      <dt>Password:
-      <dd><input type=password name=password>
-      <dd><input type=hidden name = return_url value=[% return_url %] > </dd>
-      <dd><input type=submit value=Login>
-    </dl>
-  </form>
+ <!doctype html>
+  <html>
+  <head>
+  	<link rel=stylesheet type=text/css href="[% css_url %]">
+  </head>
+  <body>
+  <div class=login>
+  	<h2>Login</h2>
+  	[% IF err %]
+  		<p class=error><strong>Error:</strong> [% err %]
+  	[% END %]
+  	<form action="[% login_url %]" method=post>
+    	<dl>
+      		<dd><input type=text name=username placeholder="Username"></dd>
+      	  <dd><input type=password name=password placeholder="Password"></dd>
+      		<dd><input type=hidden name = return_url value=[% return_url %] > </dd>
+      		<dd><input type=submit value=Login class="submit"></dd>
+    	</dl>
+  	</form>
+  </div>
+</body>
+  </html>

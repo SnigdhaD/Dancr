@@ -8,6 +8,8 @@ use File::Spec;
 use File::Slurp;
 use Dancer2::Plugin::Auth::Tiny;
 use Dancer2::Plugin::Passphrase;
+use Dancer2::Plugin::Feed;
+use POSIX qw/strftime/;
 
 set 'public_dir' => '/home/snigdha/Dancr/public';
 set 'upload_dir' => '/uploadsFolder/';
@@ -51,15 +53,16 @@ sub init_db {
 
 hook before_template => sub {
     my $tokens = shift;
-    $tokens->{'css_url'} = request->base . 'css/style.css';
+    $tokens->{'css_url'} = request->base . 'css/style1.css';
     $tokens->{'login_url'} = uri_for('/login');
     $tokens->{'register_url'} = uri_for('/register');
     $tokens->{'logout_url'} = uri_for('/logout');
+    $tokens->{'feed_url'} = uri_for('/feed');
 };
 
 get '/' => needs login => sub {
     if ( not session('logged_in') ){
-        print "here\n";
+       #needed to maintain session state
     }
 
     my $db = connect_db();
@@ -87,17 +90,18 @@ post '/add' => needs login => sub {
     my $upload = request->upload('file');
     my $fname;
 
-    my $sql = 'insert into entries (title, text, username) values (?, ?, ?)';
+    my $sql = 'insert into entries (title, text, username, timestamp) values (?, ?, ?, ?)';
     my $sth = $db->prepare($sql) or die $db->errstr;
-    $sth->execute(params->{'title'}, params->{'text'}, session('user')) or die $sth->errstr;
-
+    my $date = strftime('%Y-%m-%d %T',localtime);
+    $sth->execute(params->{'title'}, params->{'text'}, session('user'), $date) or die $sth->errstr;
+   
     if($upload){
         $fname = setting('upload_dir').$upload->filename;
         $upload->copy_to(setting('public_dir').$fname);
 
         $sql = "select id from entries where username=? and title =? and text=?";
         my @row = $db->selectrow_array($sql,undef,session('user'),params->{'title'},params->{'text'});
-
+        
         $sql = 'insert into filenames (id, filename) values (?, ?)';
         $sth = $db->prepare($sql) or die $db->errstr;
         $sth->execute($row[0], $fname) or die $sth->errstr;
@@ -110,12 +114,15 @@ any ['get' ,'post'] => '/edit' => needs login =>  sub {
     session('user'); #without this line tiny auth redirects to login page again and again
     my $db  = connect_db();
     my $sql = "SELECT title, text, username FROM entries WHERE id=?";
-    my @row = $db->selectrow_array($sql,undef,params->{'rowid'});
-    
+    my $sth = $db->prepare($sql) or die $db->errstr;
+    $sth->execute(params->{'rowid'});
+    my @row = $sth->fetchrow_array();
+       
     if ( $row[2] ne session('user')) {
         set_flash('Unauthorized access');
         redirect '/';
     }
+
     template 'edit.tt', {
         'title_value'      => $row[0],
         'text_value'       => $row[1],
@@ -129,6 +136,9 @@ post '/update' => needs login => sub{
     my $sql = 'update entries set title=?, text=? where id=?';
     my $sth = $db->prepare($sql) or die $db->errstr;
     $sth->execute(params->{'title'}, params->{'text'}, params->{'rowid'}) or die $sth->errstr;
+    my @row = $sth->fetchrow_array();
+   
+
     set_flash('Entry updated!');
     redirect '/';
 };
@@ -176,7 +186,6 @@ any ['get', 'post'] => '/login' => sub {
             session 'user' => params->{'username'};
             session 'logged_in' => true;
             set_flash('You are logged in.');
-            print params->{return_url};
             return redirect params->{return_url} || '/';
             #return redirect '/';
         }
@@ -208,6 +217,28 @@ get '/logout' => needs login => sub {
     app->destroy_session;
     set_flash('You are logged out.');
     redirect '/';
+};
+
+sub _articles {
+    my $db = connect_db();
+    my $sql = 'SELECT * FROM entries ORDER BY timestamp DESC LIMIT 5';
+    my $sth = $db->prepare($sql) or die $db->errstr;
+    $sth->execute() or die $DBI::errstr;
+    my @ans = ();
+    while(my $article= $sth->fetchrow_hashref()) {
+        push @ans, $article;
+        }
+    return \@ans;
+    }
+
+get '/feed' => sub {
+    my $feed;
+    my $articles = _articles();
+    $feed = create_atom_feed(
+    title => 'Dancer Blog Feed',
+    entries => $articles,
+    );
+    return $feed;
 };
 
 init_db();

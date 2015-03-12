@@ -7,7 +7,8 @@ create table if not exists users (
         );
 create table if not exists entries ( id integer primary key autoincrement, title string not null,
         text string not null,
-        username string not null
+        username string not null,
+        timestamp text not null
         );
 create table if not exists filenames (
         id integer primary key,

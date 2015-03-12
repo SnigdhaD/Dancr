@@ -1,22 +1,22 @@
  <!doctype html>
   <html>
   <head>
-    <title>Dancr</title>
     <link rel=stylesheet type=text/css href="[% css_url %]">
   </head>
   <body>
     <div class=page>
-    <h1>Dancr</h1>
+    <!-- <h1>Dancr</h1> -->
        <div class=metanav>
        [% IF not session.logged_in %]
-         <a href="[% login_url %]">log in</a>
-	       <a href="[% register_url %]">Register Now</a>
+         <a href="[% login_url %]" class="button">log in</a>
+	       <a href="[% register_url %]"class="button b2">Register Now</a>
        [% ELSE %]
-         <a href="[% logout_url %]">log out</a>
+         <a href="[% logout_url %]" class="button">log out</a>
        [% END %]
+       <a href="[% feed_url %]" style="float:center" class="button b3" >Atom Feed</a>
     </div>
     [% IF msg %]
-      <div class=flash> [% msg %] </div>
+      <div class="flash"> [% msg %] </div>
     [% END %]
     [% content %]
   </div>
