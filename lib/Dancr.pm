@@ -62,7 +62,6 @@ hook before_template => sub {
 
 get '/' => needs login => sub {
     if ( not session('logged_in') ){
-       #needed to maintain session state
     }
 
     my $db = connect_db();
@@ -94,12 +93,12 @@ post '/add' => needs login => sub {
     my $sth = $db->prepare($sql) or die $db->errstr;
     my $date = strftime('%Y-%m-%d %T',localtime);
     $sth->execute(params->{'title'}, params->{'text'}, session('user'), $date) or die $sth->errstr;
-   
+
     if($upload){
         $fname = setting('upload_dir').$upload->filename;
         $upload->copy_to(setting('public_dir').$fname);
 
-        $sql = "select id from entries where username=? and title =? and text=?";
+        $sql = "select id from entries where username =? and title =? and text=?";
         my @row = $db->selectrow_array($sql,undef,session('user'),params->{'title'},params->{'text'});
         
         $sql = 'insert into filenames (id, filename) values (?, ?)';
@@ -117,7 +116,7 @@ any ['get' ,'post'] => '/edit' => needs login =>  sub {
     my $sth = $db->prepare($sql) or die $db->errstr;
     $sth->execute(params->{'rowid'});
     my @row = $sth->fetchrow_array();
-       
+
     if ( $row[2] ne session('user')) {
         set_flash('Unauthorized access');
         redirect '/';
@@ -173,7 +172,7 @@ any ['get', 'post'] => '/login' => sub {
     if ( request->method() eq "POST" ) {
         # process form input
         my $db  = connect_db();
-        my $sql = 'select username,password from users where username=?';
+        my $sql = 'select username,password from users where author=?';
         my @ans = $db->selectrow_array($sql, undef, params->{'username'});
         my ($user,$pwd) = @ans;
         if (params->{'username'} ne $user){
@@ -225,23 +224,24 @@ sub _articles {
     my $sth = $db->prepare($sql) or die $db->errstr;
     $sth->execute() or die $DBI::errstr;
     my @ans = ();
-    while(my $article= $sth->fetchrow_hashref()) {
+
+    while(my $article= $sth->fetchrow_hashref())
+    {
         push @ans, $article;
-        }
-    return \@ans;
     }
+    return \@ans;
+}
 
 get '/feed' => sub {
     my $feed;
     my $articles = _articles();
     $feed = create_atom_feed(
-    title => 'Dancer Blog Feed',
-    entries => $articles,
-    );
+        title => 'Dancer Blog Feed',
+        entries => $articles,
+        );
     return $feed;
 };
 
 init_db();
 start();
 true;
-
