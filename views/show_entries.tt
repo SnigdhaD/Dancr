@@ -7,40 +7,45 @@
 [% IF session.logged_in %]
 <div class=add>
     <form action="[% add_entry_url %]" method=post class=add-entry enctype=multipart/form-data>
-      <dl>
-        <dt>Title:
-        <dd><input type=text size=30 name=title>
-        <dt>Text:
-        <dd><textarea name=text rows=5 cols=43></textarea>
-        <dd><input type=file name=file>
-        <dd><input type=submit value=Share>
-      </dl>
+			<label for=title>Title</label>
+        	<input type=text size=30 name=title>
+			<br /><br />
+			<label for=text>Text</label>
+			<textarea name=text rows=5 cols=43></textarea>
+			<br /><br />
+       		 <input type=file name=file>
+			<br /><br />
+			<input type=submit value=Share>
     </form>
-    </div>
+</div>
 [% END %]
-  <ul class=entries>
-  [% IF entries.size %]
-    [% FOREACH id IN entries.keys.nsort %]
-      <h2>[% entries.$id.title %]</h2>
-      [% entry_id = entries.$id.id %]
-      <img src=[% filenames.item(entry_id).filename %] />
-      <p>[% entries.$id.text %]</p>
-      [% IF entries.$id.username == uname %]
-      <div class=option>
-          <form action="[% edit_entry_url %]" method=get>
-          <input type=hidden value="[% entries.$id.id %]" name=rowid>
-          <input type=submit value=Edit>
-          </form>
-          <form action="[% delete_entry_url %]" method=post>
-          <input type=hidden value="[% entries.$id.id %]" name=rowid>
-          <input type=submit value=Delete>
-          </form>
-          </div>
-      [% END %]
-    [% END %]
-  [% ELSE %]
-    <em>Unbelievable.  No entries here so far</em>
-  [% END %]
-  </ul>
+[% IF entries.size %]
+<div class=entries>
+[% FOREACH id IN entries.keys.nsort %]
+	<div class=entry>  
+		<h2>[% entries.$id.title %]</h2>
+		[% entry_id = entries.$id.id %]
+		[% entries.$id.timestamp %]
+		<!-- Try this yourself: Print the below line only if the entry has an associated image-->
+		<img src=[% filenames.item(entry_id).filename %] />
+		<p>[% entries.$id.text %]</p>
+		[% IF entries.$id.username == uname %]
+		<div class=option>
+			<form action="[% edit_entry_url %]" method=get>
+				<input type=hidden value="[% entries.$id.id %]" name=rowid>
+				<input type=submit value=Edit>
+			</form>
+			<form action="[% delete_entry_url %]" method=post>
+				<input type=hidden value="[% entries.$id.id %]" name=rowid>
+				<input type=submit value=Delete>
+			</form>
+		</div>
+		[% END %]
+	</div>
+[% END %]
+</div>
+[% ELSE %]
+		<em>Unbelievable. No entries here so far</em>
+[% END %]
   </body>
   </html>

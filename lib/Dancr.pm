@@ -6,12 +6,13 @@ use Dancer2;
 use DBI;
 use File::Spec;
 use File::Slurp;
+use File::Basename;
 use Dancer2::Plugin::Auth::Tiny;
 use Dancer2::Plugin::Passphrase;
 use Dancer2::Plugin::Feed;
 use POSIX qw/strftime/;
 
-set 'public_dir' => '/home/snigdha/Dancr/public';
+set 'public_dir' => dirname(__FILE__)."/../public";
 set 'upload_dir' => '/uploadsFolder/';
 set 'database'     => File::Spec->catfile(File::Spec->tmpdir(), 'dancr.db');
 set 'session'      => 'Simple';
@@ -58,6 +59,7 @@ hook before_template => sub {
     $tokens->{'register_url'} = uri_for('/register');
     $tokens->{'logout_url'} = uri_for('/logout');
     $tokens->{'feed_url'} = uri_for('/feed');
+	$tokens->{'index_url'} = request->base;
 };
 
 get '/' => needs login => sub {
@@ -65,7 +67,7 @@ get '/' => needs login => sub {
     }
 
     my $db = connect_db();
-    my $sql = 'select id, title, text, username from entries order by id desc';
+    my $sql = 'select id, title, text, username, timestamp from entries order by id desc';
     my $sth = $db->prepare($sql) or die $db->errstr;
     $sth->execute or die $sth->errstr;
     $sql = 'select id,filename from filenames order by id desc';
@@ -82,7 +84,12 @@ get '/' => needs login => sub {
         'uname'            => session('user')
     };
 };
-
+sub _nl2br {
+	#This function converts "\n" to <br/>. So that when we display the text, we don't loose the enter.
+		my $t = shift || return;
+		$t =~ s/([\r])/<br>/g;
+		return $t; 
+}
 post '/add' => needs login => sub {
 
     my $db  = connect_db();
@@ -92,7 +99,8 @@ post '/add' => needs login => sub {
     my $sql = 'insert into entries (title, text, username, timestamp) values (?, ?, ?, ?)';
     my $sth = $db->prepare($sql) or die $db->errstr;
     my $date = strftime('%Y-%m-%d %T',localtime);
-    $sth->execute(params->{'title'}, params->{'text'}, session('user'), $date) or die $sth->errstr;
+	my $text = _nl2br(params->{'text'});
+    $sth->execute(params->{'title'}, $text, session('user'), $date) or die $sth->errstr;
 
     if($upload){
         $fname = setting('upload_dir').$upload->filename;
@@ -100,8 +108,8 @@ post '/add' => needs login => sub {
 
         $sql = "select id from entries where username =? and title =? and text=?";
         my @row = $db->selectrow_array($sql,undef,session('user'),params->{'title'},params->{'text'});
-        
-        $sql = 'insert into filenames (id, filename) values (?, ?)';
+
+		$sql = 'insert into filenames (id, filename) values (?, ?)';
         $sth = $db->prepare($sql) or die $db->errstr;
         $sth->execute($row[0], $fname) or die $sth->errstr;
     }
@@ -136,7 +144,6 @@ post '/update' => needs login => sub{
     my $sth = $db->prepare($sql) or die $db->errstr;
     $sth->execute(params->{'title'}, params->{'text'}, params->{'rowid'}) or die $sth->errstr;
     my @row = $sth->fetchrow_array();
-   
 
     set_flash('Entry updated!');
     redirect '/';
@@ -172,7 +179,7 @@ any ['get', 'post'] => '/login' => sub {
     if ( request->method() eq "POST" ) {
         # process form input
         my $db  = connect_db();
-        my $sql = 'select username,password from users where author=?';
+        my $sql = 'select username,password from users where username=?';
         my @ans = $db->selectrow_array($sql, undef, params->{'username'});
         my ($user,$pwd) = @ans;
         if (params->{'username'} ne $user){
@@ -224,10 +231,13 @@ sub _articles {
     my $sth = $db->prepare($sql) or die $db->errstr;
     $sth->execute() or die $DBI::errstr;
     my @ans = ();
-
-    while(my $article= $sth->fetchrow_hashref())
+#We fetch rows from entries and create objects containing title and author elements
+    while(my $article = $sth->fetchrow_hashref())
     {
-        push @ans, $article;
+		my $feed ={};
+		$feed->{title} = $article->{title};
+		$feed->{author} = $article->{username};
+        push @ans, $feed;
     }
     return \@ans;
 }
@@ -235,6 +245,8 @@ sub _articles {
 get '/feed' => sub {
     my $feed;
     my $articles = _articles();
+	#create_atom_feed creates atom feeds using the array stored at $articles reference.
+	#The function uses attributes such as author, title, tagline etc to populate the feeds.
     $feed = create_atom_feed(
         title => 'Dancer Blog Feed',
         entries => $articles,

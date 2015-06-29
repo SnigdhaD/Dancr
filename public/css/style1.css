@@ -20,6 +20,37 @@ margin: 1.6em 0;
 }
 
 
+img{
+	max-height: 400px;
+	max-width:400px;
+	margin: 5px 5px 5px 5px;
+}
+
+
+.entry {
+	float: left;
+	position: relative;
+	padding-bottom: 20%;
+   background: rgba(0, 0, 0, 0.1);
+   padding: 10px;
+   text-align: left;
+	width:90%;
+	margin:20px;
+}
+.entry img{
+	float:right;
+}
+.entry p{
+	max-width: 400px;
+	word-wrap: break-word;
+}
+
+.heading{
+	float:left;
+	padding: 20px, 20px, 20px;
+	margin: 0 auto;
+}
+
 .register, .login, .add{
   position: relative;
   margin: 0 auto;
@@ -62,7 +93,8 @@ margin: 1.6em 0;
 }
 
 .metanav {
-  margin: 80px auto;
+  margin-top:0px;
+  margin-bottom: 50px;
   padding: 20px;
   text-align: right;
   background: #f5f5f5;
@@ -131,7 +163,9 @@ margin: 1.6em 0;
   font-size: 20px;
   font-family: sans-serif;
 }
-
+.option form{
+	display:inline-block;
+}
 .option input[type=submit], .login input[type=submit], .register input[type=submit], .add input[type=submit] {
   display: inline-block;
   padding: 0 18px;
@@ -155,3 +189,5 @@ margin: 1.6em 0;
   -webkit-box-shadow: inset 0 1px white, 0 1px 2px rgba(0, 0, 0, 0.15);
   box-shadow: inset 0 1px white, 0 1px 2px rgba(0, 0, 0, 0.15);
 }
+
+

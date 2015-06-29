@@ -7,6 +7,7 @@
     <div class=page>
     <!-- <h1>Dancr</h1> -->
        <div class=metanav>
+		   <h1 class="heading"><a href="[% index_url %]">Dancr</a></h1>
        [% IF not session.logged_in %]
          <a href="[% login_url %]" class="button">log in</a>
 	       <a href="[% register_url %]"class="button b2">Register Now</a>

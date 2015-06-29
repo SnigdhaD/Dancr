@@ -11,8 +11,8 @@
   	[% END %]
   	<form action="[% login_url %]" method=post>
     	<dl>
-      		<dd><input type=text name=username placeholder="Username"></dd>
-      	  <dd><input type=password name=password placeholder="Password"></dd>
+			<dd><input type=text name=username placeholder="Username" ></dd>
+      	  <dd><input type=password name=password placeholder="Password" ></dd>
       		<dd><input type=hidden name = return_url value=[% return_url %] > </dd>
       		<dd><input type=submit value=Login class="submit"></dd>
     	</dl>
